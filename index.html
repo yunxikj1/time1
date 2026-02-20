@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>时间感知 | Chronos Immersive Experience</title>
+    <!-- 全局样式与变量引入 -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts 引入高对比度、极具设计感的现代与古典混合字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Serif+SC:wght@200;300;400;600;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="loading">
+    <!-- 1. SVG 滤镜库 (Gooey, 噪点畸变等) 用于后续 DOM 元素的特效 -->
+    <svg style="position: absolute; width: 0; height: 0; overflow: hidden;" version="1.1"
+        xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+        <defs>
+            <filter id="goo" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="15" result="blur" />
+                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 25 -10"
+                    result="goo" />
+                <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+            </filter>
+            <filter id="glitch">
+                <feTurbulence type="fractalNoise" baseFrequency="0.05 0.9" numOctaves="3" result="noise" />
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="20" xChannelSelector="R"
+                    yChannelSelector="G" />
+            </filter>
+            <filter id="noise-overlay">
+                <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch" />
+                <feColorMatrix type="matrix" values="1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 0.1 0" />
+            </filter>
+        </defs>
+    </svg>
+
+    <!-- 2. 全屏原生 WebGL 容器用于着色器渲染 -->
+    <div id="webgl-container">
+        <canvas id="time-canvas"></canvas>
+    </div>
+
+    <!-- 3. 自定义鼠标追踪器 -->
+    <div class="cursor-dot"></div>
+    <div class="cursor-ring"></div>
+
+    <!-- 4. 页面加载与降临层 -->
+    <div id="loader" class="loader-overlay">
+        <div class="loader-content">
+            <h1 class="loader-title char-split" data-splitting>CHRONOS</h1>
+            <div class="loader-progress-container">
+                <div class="loader-progress-bar"></div>
+            </div>
+            <p class="loader-text">编译时间残影... <span id="loading-pct">0</span>%</p>
+            <div class="headphones-hint">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M3 18v-6a9 9 0 0 1 18 0v6M21 15v4a2 2 0 0 1-2 2h-1v-6h3zM3 15v4a2 2 0 0 0 2 2h1v-6H3z" />
+                </svg>
+                <span>请佩戴耳机以获取最佳的听觉体验与空间感知</span>
+            </div>
+            <button id="enter-btn" class="enter-btn disabled">
+                <span class="btn-text">接入意识</span>
+                <span class="btn-ripple"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 5. 全局导航与 HUD 遮罩 -->
+    <nav class="hud-nav">
+        <div class="hud-left">
+            <span class="logo">T-PERCEPTION</span>
+            <span class="coordinates">LAT 40.7128° N, LONG 74.0060° W</span>
+        </div>
+        <div class="hud-right">
+            <div class="audio-toggle" id="audio-toggle">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+            <span class="time-display" id="global-clock">00:00:00:000</span>
+        </div>
+    </nav>
+    <div class="hud-progress-frame">
+        <div class="progress-fill" id="scroll-progress"></div>
+    </div>
+
+    <!-- 6. 平滑滚动代理容器 (Smooth Scroll Wrapper) -->
+    <!-- 为了防止系统默认滚动的生硬感，所有的 DOM 元素都在此容器内经由 JS 进行 TranslateY 控制 -->
+    <div id="smooth-wrapper">
+        <div id="smooth-content">
+
+            <!-- ====== 场景 01：引言 (The Conception) ====== -->
+            <section class="scene scene-01-intro" id="scene-intro">
+                <div class="layer-back parallax" data-speed="0.8">
+                    <div class="abstract-shape shape-1"></div>
+                </div>
+                <div class="container container-center">
+                    <div class="title-wrapper">
+                        <h1 class="hero-title fw-900 split-chars">时间是<br><span
+                                class="italic-serif text-hollow">流动的</span>幻觉</h1>
+                    </div>
+                    <div class="paragraph-wrapper mt-4">
+                        <p class="hero-desc fw-300 split-lines mask-up">
+                            物理学告诉我们，过去、现在与未来并无本质区别。<br>
+                            秒针的跳动，仅仅是熵增在人类视网膜上的投影。<br>
+                            在这里，滑动鼠标，你就是时间的主宰。
+                        </p>
+                    </div>
+                    <div class="scroll-down-hint">
+                        <div class="mouse-icon">
+                            <div class="wheel"></div>
+                        </div>
+                        <span class="space-mono text-xs tracking-widest uppercase">Initiate Scroll</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ====== 场景 02：时间的膨胀 (Time Dilation) ====== -->
+            <section class="scene scene-02-dilation" id="scene-dilation">
+                <div class="container layout-split">
+                    <div class="left-col parallax" data-speed="1.1">
+                        <h2 class="section-heading fw-200">
+                            <span class="small-label">CHAPTER I</span><br>
+                            相对论与<br><span class="fw-700 text-glow">膨胀效应</span>
+                        </h2>
+                    </div>
+                    <div class="right-col parallax" data-speed="0.95">
+                        <p class="body-text text-lg split-words">
+                            当物体以接近光速运动，或者处于极强的引力场中时，它所经历的时间相对于静止或远离引力场的观察者来说，流逝得更慢。
+                        </p>
+                        <br>
+                        <p class="body-text split-words">
+                            这就是爱因斯坦狭义相对论预言的“时间膨胀”。当你在这条滚动的长廊里加速下滑，周围的颗粒与文字也会因你的“速度”而发生形变。你滑得越快，世界就被拉得越长。试着猛烈地滑动一次屏幕。
+                        </p>
+                        <!-- 动态拉伸交互演示区 -->
+                        <div class="interactive-stretch-box mt-5">
+                            <div class="stretch-target" id="stretch-element-1">DILATION</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ====== 场景 03：记忆的碎片 (Fragments of Memory) ====== -->
+            <section class="scene scene-03-fragments" id="scene-fragments">
+                <div class="layer-glass"></div>
+                <div class="container">
+                    <h2 class="section-heading text-center fw-600 spread-text split-chars">记忆斑驳</h2>
+                    <div class="fragment-grid mt-6">
+                        <!-- 复杂的网格系统，利用 CSS Grid 错落有致 -->
+                        <div class="frag-item frag-1 parallax" data-speed="1.2">
+                            <div class="frag-img-placeholder" style="background: linear-gradient(45deg, #111, #333);">
+                            </div>
+                            <p class="caption">「儿时的下雨天」<br><span class="space-mono">T-MINUS 7200 DAYS</span></p>
+                        </div>
+                        <div class="frag-item frag-2 parallax" data-speed="0.8">
+                            <div class="frag-img-placeholder"
+                                style="background: linear-gradient(135deg, #2a2a2a, #050505);"></div>
+                            <p class="caption">「燃烧的日落」<br><span class="space-mono">T-MINUS 1400 DAYS</span></p>
+                        </div>
+                        <div class="frag-item frag-3 parallax" data-speed="1.4">
+                            <div class="frag-img-placeholder"
+                                style="background: linear-gradient(225deg, #151515, #000);"></div>
+                            <p class="caption">「此刻的你」<br><span class="space-mono">PRESENT NORMAL</span></p>
+                        </div>
+                    </div>
+                    <div class="text-center mt-5">
+                        <p class="body-text max-w-800 mx-auto fade-up">
+                            海马体将时间切片，压缩成带有情绪标签的画面。<br>我们回忆的从来不是真实的时间，而是被主观意识篡改过无数次的残影。
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ====== 场景 04：视界线 (Event Horizon) ====== -->
+            <!-- 使用高度粘性 (Sticky/Pin) 动画的区域 -->
+            <section class="scene scene-04-horizon pinned-scene" id="scene-horizon">
+                <div class="pin-container" id="horizon-pin">
+                    <div class="black-hole-visual">
+                        <div class="accretion-disk"></div>
+                        <div class="event-horizon"></div>
+                    </div>
+                    <div class="horizon-content">
+                        <h2 class="massive-text fw-900 glitch-text" data-text="EVENT HORIZON">事件视界</h2>
+                        <div class="horizon-text-block">
+                            <p class="fw-300">一旦越过这条界线，</p>
+                            <p class="fw-700 italic-serif text-xl">连光都无法逃脱，时间将指向单一的方向——内核。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ====== 场景 05：原点/倒流 (Reverse / Origin) ====== -->
+            <section class="scene scene-05-origin" id="scene-origin">
+                <div class="container">
+                    <div class="origin-wrapper pt-10 pb-10">
+                        <div class="noise-overlay"></div>
+                        <h2 class="section-heading text-vertical">
+                            <span class="char-stack">逆</span>
+                            <span class="char-stack">向</span>
+                            <span class="char-stack">流</span>
+                            <span class="char-stack">动</span>
+                        </h2>
+                        <div class="origin-text-panel">
+                            <p class="body-text lead">
+                                在量子尺度下，时间是对称的。方程式允许过去影响未来，同样也允许未来影响过去。
+                            </p>
+                            <p class="body-text mt-3">
+                                可是宏观世界的我们，被热力学第二定律死死定在了“不可逆”的十字架上。为了回到过去，我们发明了录像机、摄影、日记，乃至一切艺术。艺术，就是人类对抗熵增的唯一武器。
+                            </p>
+                            <div class="rewind-btn mt-4" id="btn-rewind">
+                                <span class="rewind-icon">◄◄</span>
+                                REWIND CONSCIOUSNESS
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ====== 场景 06：无尽回廊 (Infinite Loop) ====== -->
+            <section class="scene scene-06-loop" id="scene-loop">
+                <div class="marquee-container">
+                    <div class="marquee-track" id="marquee-1">
+                        <span class="marquee-text">TICK TOCK TICK TOCK THE CLOCK IS MELTING</span>
+                        <span class="marquee-text">TICK TOCK TICK TOCK THE CLOCK IS MELTING</span>
+                        <span class="marquee-text">TICK TOCK TICK TOCK THE CLOCK IS MELTING</span>
+                    </div>
+                    <div class="marquee-track marquee-reverse" id="marquee-2">
+                        <span class="marquee-text">ECHOES IN THE VOID ECHOES IN THE VOID</span>
+                        <span class="marquee-text">ECHOES IN THE VOID ECHOES IN THE VOID</span>
+                        <span class="marquee-text">ECHOES IN THE VOID ECHOES IN THE VOID</span>
+                    </div>
+                    <div class="marquee-track" id="marquee-3">
+                        <span class="marquee-text">WAKE UP WAKE UP WAKE UP WAKE UP WAKE UP</span>
+                        <span class="marquee-text">WAKE UP WAKE UP WAKE UP WAKE UP WAKE UP</span>
+                        <span class="marquee-text">WAKE UP WAKE UP WAKE UP WAKE UP WAKE UP</span>
+                    </div>
+                </div>
+                <!-- 底部高空白区域，用于产生漫长的离开体验 -->
+                <div class="spacer-vh-150"></div>
+            </section>
+
+            <!-- ====== 场景 07：尾声 (Epilogue) ====== -->
+            <section class="scene scene-07-epilogue" id="scene-epilogue">
+                <div class="container container-center text-center">
+                    <h2 class="final-text split-chars fw-200">
+                        你浪费了生活中的 <span id="time-wasted" class="fw-700 italic-serif">0</span> 秒<br>
+                        来观察时间的流逝。
+                    </h2>
+                    <p class="caption mt-2 text-gray-500">
+                        "The only reason for time is so that everything doesn't happen at once."<br>— Albert Einstein
+                    </p>
+                    <button class="btn-refresh mt-6" onclick="window.scrollTo(0, 0); location.reload();">
+                        <span class="btn-text">重新陷入梦境</span>
+                    </button>
+                </div>
+                <div class="footer-credits">
+                    <p>Designed and generated for extreme aesthetic demands.</p>
+                    <p>WebGL • Web Audio API • GSAP • Vanilla JS</p>
+                </div>
+            </section>
+
+        </div> <!-- /smooth-content -->
+    </div> <!-- /smooth-wrapper -->
+
+    <div class="static-noise"></div>
+
+    <!-- 7. 外部依赖项：采用 CDN 引入 GSAP 相关高级插件用于重型动画 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/CustomEase.min.js"></script>
+    <!-- WebGL 辅助库 twgl.js 以简化着色器编译与缓冲区管理 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twgl.js/5.3.1/twgl.min.js"></script>
+
+    <!-- 8. 模块化脚本接入 -->
+    <!-- 先引入音频与 WebGL，再引入主控 JS -->
+    <script src="audio.js"></script>
+    <script src="canvas.js"></script>
+    <script src="main.js"></script>
+</body>
+
+</html>
