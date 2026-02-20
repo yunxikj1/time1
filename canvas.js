@@ -267,13 +267,29 @@ let currentMouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 let targetMouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 
 // Resizing
-window.addEventListener('resize', () => {
-    twgl.resizeCanvasToDisplaySize(gl.canvas);
+function resizeCanvas() {
+    // Force CSS size to match window
+    gl.canvas.style.width = '100vw';
+    gl.canvas.style.height = '100vh';
+
+    // Calculate physical pixels based on device ratio for crispness
+    const displayWidth = Math.floor(window.innerWidth * window.devicePixelRatio);
+    const displayHeight = Math.floor(window.innerHeight * window.devicePixelRatio);
+
+    // Only resize if necessary
+    if (gl.canvas.width !== displayWidth || gl.canvas.height !== displayHeight) {
+        gl.canvas.width = displayWidth;
+        gl.canvas.height = displayHeight;
+    }
+
+    // Update uniforms and viewport
     uniforms.u_resolution = [gl.canvas.width, gl.canvas.height];
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-});
-twgl.resizeCanvasToDisplaySize(gl.canvas);
-gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+}
+
+window.addEventListener('resize', resizeCanvas);
+// Run once on load
+resizeCanvas();
 
 /* -------- 5. MAIN RENDER LOOP -------- */
 let then = 0;
@@ -283,11 +299,8 @@ function render(now) {
     const deltaTime = now - then;
     then = now;
 
-    // Ensure Twgl checks for canvas size mismatch based on CSS device px ratio mapping
-    if (twgl.resizeCanvasToDisplaySize(gl.canvas)) {
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-        uniforms.u_resolution = [gl.canvas.width, gl.canvas.height];
-    }
+    // Handle Resize checks continuously in case of DOM shifts
+    resizeCanvas();
 
     // 5.1 Mouse Smoothing
     // Ease the current mouse position towards target

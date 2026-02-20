@@ -590,12 +590,25 @@ const initMasterTimeline = () => {
 
     // Global HUD Clock
     const clockNode = document.getElementById('global-clock');
-    const updateClock = () => {
+    const fluxVal1 = document.getElementById('flux-val-1');
+    const fluxVal2 = document.getElementById('flux-val-2');
+
+    const updateGlobalHUD = () => {
         const d = new Date();
         clockNode.innerText = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}:${String(d.getMilliseconds()).padStart(3, '0')}`;
-        requestAnimationFrame(updateClock);
+
+        // Update Quantum Flux based on math and scroll momentum
+        if (fluxVal1 && fluxVal2) {
+            let baseFlux = Math.random() * 0.5 + Math.abs(window.__SCROLL_MOMENTUM || 0) * 0.01;
+            fluxVal1.innerText = baseFlux.toFixed(3);
+
+            let entropy = (d.getTime() % 10000) / 10000 + window.__GLOBAL_PROGRESS;
+            fluxVal2.innerText = entropy.toFixed(3);
+        }
+
+        requestAnimationFrame(updateGlobalHUD);
     };
-    updateClock();
+    updateGlobalHUD();
 };
 
 /* ----- F. HUD & CURSOR TRACKER ----- */
