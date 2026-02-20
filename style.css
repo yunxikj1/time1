@@ -48,6 +48,23 @@
     --transition-fast: 0.2s cubic-bezier(0.215, 0.610, 0.355, 1.000);
     --transition-base: 0.4s cubic-bezier(0.165, 0.840, 0.440, 1.000);
     --transition-slow: 0.8s cubic-bezier(0.190, 1.000, 0.220, 1.000);
+
+    /* 新增色彩 */
+    --color-quantum-cyan: #00fff9;
+    --color-quantum-magenta: #ff00c1;
+    --color-sand-gold: #d4a857;
+    --color-timeline-blue: #4a9eff;
+    --color-deep-void: #010104;
+
+    /* 新增动画时序 */
+    --ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --ease-smooth-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-dramatic: cubic-bezier(0.075, 0.82, 0.165, 1);
+
+    /* 新增模糊/景深 */
+    --blur-subtle: 2px;
+    --blur-medium: 8px;
+    --blur-heavy: 20px;
 }
 
 /* -------- 2. RESET & BASE -------- */
@@ -1147,4 +1164,484 @@ a {
     font-family: var(--font-mono);
     font-size: 0.7rem;
     color: #444;
+}
+
+/* -------- 10. GLOBAL UI ENHANCEMENTS -------- */
+
+/* Scene Transition Mask */
+.scene-transition-mask {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: var(--z-hud);
+    display: flex;
+}
+
+.mask-left,
+.mask-right {
+    width: 50%;
+    height: 100%;
+    background-color: var(--color-bg-base);
+    transform: scaleX(0);
+}
+
+.mask-left {
+    transform-origin: left;
+}
+
+.mask-right {
+    transform-origin: right;
+}
+
+/* Velocity HUD */
+.velocity-hud {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    z-index: var(--z-hud);
+    pointer-events: none;
+}
+
+.velocity-bar {
+    width: 2px;
+    height: 0px;
+    /* modified by JS */
+    min-height: 2px;
+    background-color: var(--color-accent);
+    transform-origin: bottom;
+    transition: height 0.1s ease-out, background-color 0.1s ease-out;
+}
+
+.velocity-label {
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.4);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+}
+
+/* Scene Indicator */
+.scene-indicator {
+    position: fixed;
+    bottom: 40px;
+    left: 40px;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    color: var(--color-text-muted);
+    z-index: var(--z-hud);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    mix-blend-mode: difference;
+}
+
+.current-scene {
+    color: var(--color-white);
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.scene-divider {
+    opacity: 0.5;
+}
+
+/* Floating Kanji */
+.floating-kanji {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.floating-kanji span {
+    position: absolute;
+    font-family: var(--font-serif);
+    font-size: clamp(2rem, 5vw, 6rem);
+    color: rgba(255, 255, 255, 0.03);
+    font-weight: 900;
+    white-space: nowrap;
+    will-change: transform, opacity;
+}
+
+/* Enhancing Hover for buttons */
+button.cursor-active,
+.rewind-btn.cursor-active,
+.enter-btn.cursor-active {
+    transform: scale(0.95);
+    background-color: var(--color-accent) !important;
+    color: var(--color-bg-base) !important;
+}
+
+/* -------- 11. SCENE 02.5 HOURGLASS -------- */
+.scene-02-5-hourglass {
+    min-height: 120vh;
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.hourglass-visual {
+    position: absolute;
+    left: 10%;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 300px;
+    height: 600px;
+    z-index: 1;
+    filter: drop-shadow(0 0 30px rgba(212, 168, 87, 0.2));
+}
+
+@media(max-width: 1024px) {
+    .hourglass-visual {
+        position: relative;
+        left: 0;
+        top: 0;
+        transform: none;
+        margin: 0 auto 50px auto;
+        width: 200px;
+        height: 400px;
+    }
+}
+
+.hourglass-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.hourglass-frame {
+    transition: stroke 0.3s;
+}
+
+.sand-particles circle {
+    will-change: transform, opacity;
+}
+
+.hourglass-text-panel {
+    margin-left: auto;
+    width: 50%;
+    position: relative;
+    z-index: 2;
+}
+
+@media(max-width: 1024px) {
+    .hourglass-text-panel {
+        width: 100%;
+        margin-left: 0;
+    }
+}
+
+/* -------- 12. SCENE 03.5 TIMELINE -------- */
+.scene-03-5-timeline {
+    min-height: 300vh;
+    overflow: hidden;
+    position: relative;
+    background: linear-gradient(to bottom, transparent, rgba(5, 5, 10, 0.8), transparent);
+}
+
+.timeline-track {
+    position: relative;
+    padding: 15vh 0;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.timeline-line {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, transparent, var(--color-accent) 15%, var(--color-accent) 85%, transparent);
+    transform-origin: top center;
+    transform: scaleY(0);
+    /* Driven by GSAP */
+}
+
+@media(max-width: 768px) {
+    .timeline-line {
+        left: 30px;
+    }
+}
+
+.timeline-node {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 30vh;
+    opacity: 0.1;
+    transform: translateY(100px);
+    transition: opacity 0.8s var(--ease-smooth-out), transform 0.8s var(--ease-smooth-out);
+}
+
+.timeline-node.is-active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.timeline-node:nth-child(odd) {
+    flex-direction: row;
+    padding-right: 50%;
+}
+
+.timeline-node:nth-child(even) {
+    flex-direction: row-reverse;
+    padding-left: 50%;
+    text-align: right;
+}
+
+@media(max-width: 768px) {
+
+    .timeline-node:nth-child(odd),
+    .timeline-node:nth-child(even) {
+        flex-direction: row;
+        padding-left: 60px;
+        padding-right: 0;
+        text-align: left;
+    }
+}
+
+.node-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--color-accent);
+    background: var(--color-bg-base);
+    position: absolute;
+    left: calc(50% - 8px);
+    z-index: 2;
+    transition: box-shadow 0.3s, transform 0.3s;
+}
+
+@media(max-width: 768px) {
+    .node-dot {
+        left: 23px;
+    }
+}
+
+.timeline-node.is-active .node-dot {
+    background: var(--color-accent);
+    box-shadow: 0 0 15px var(--color-accent);
+    transform: scale(1.2);
+}
+
+.node-dot.pulse-dot {
+    animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+    0% {
+        box-shadow: 0 0 0 0 rgba(179, 155, 130, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 20px rgba(179, 155, 130, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(179, 155, 130, 0);
+    }
+}
+
+.node-content {
+    background: rgba(10, 10, 10, 0.6);
+    backdrop-filter: blur(10px);
+    padding: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-lg);
+    width: 400px;
+    max-width: 100%;
+}
+
+@media(max-width: 768px) {
+    .node-content {
+        width: 100%;
+        padding: 20px;
+    }
+}
+
+.node-year {
+    color: var(--color-accent);
+    font-size: 0.9rem;
+    letter-spacing: 0.1em;
+}
+
+.node-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 3vw, 2.5rem);
+    margin: 10px 0;
+}
+
+.node-desc {
+    color: var(--color-text-muted);
+    font-weight: 300;
+    line-height: 1.8;
+}
+
+/* -------- 13. ADDITIONAL FRAGMENTS -------- */
+.frag-4 {
+    grid-column: 1 / span 5;
+    margin-top: 50px;
+}
+
+.frag-5 {
+    grid-column: 8 / span 4;
+    margin-top: 150px;
+}
+
+@media(max-width: 768px) {
+
+    .frag-4,
+    .frag-5 {
+        grid-column: 1 / span 12;
+        margin-top: 20px;
+    }
+}
+
+/* -------- 14. SCENE 04.5 QUANTUM TUNNEL -------- */
+.scene-04-5-quantum {
+    min-height: 150vh;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.quantum-tunnel-wrapper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.quantum-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+.quantum-overlay {
+    position: relative;
+    z-index: 1;
+    padding: 15vh 5vw;
+}
+
+.quantum-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+    text-align: center;
+}
+
+@media(max-width: 768px) {
+    .quantum-metrics {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+}
+
+.metric-item {
+    border: 1px solid rgba(0, 255, 249, 0.2);
+    padding: 25px max(1vw, 15px);
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(12px);
+    border-radius: var(--border-radius-md);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.metric-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 255, 249, 0.1);
+}
+
+.metric-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-quantum-cyan);
+    margin-bottom: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.metric-value {
+    font-size: clamp(1.5rem, 3vw, 2.5rem);
+    color: var(--color-white);
+    font-variant-numeric: tabular-nums;
+    font-family: var(--font-mono);
+}
+
+/* -------- 15. SCENE 06.5 DALI CLOCK -------- */
+.scene-06-5-dali {
+    min-height: 150vh;
+    background: var(--color-deep-void);
+    position: relative;
+}
+
+.dali-clock-stage {
+    width: 100%;
+    max-width: 800px;
+    height: 600px;
+    margin: 0 auto;
+    position: relative;
+}
+
+@media(max-width: 768px) {
+    .dali-clock-stage {
+        height: 400px;
+    }
+}
+
+#dali-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.dali-quote {
+    font-family: var(--font-serif);
+    font-size: clamp(1.2rem, 3vw, 2.5rem);
+    font-style: italic;
+    line-height: 1.6;
+    border-left: 2px solid var(--color-accent);
+    padding-left: 30px;
+    margin: 0 auto;
+    max-width: 800px;
+}
+
+@media(max-width: 768px) {
+    .dali-quote {
+        font-size: 1.2rem;
+        padding-left: 15px;
+    }
+}
+
+.dali-cite {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    display: block;
+}
+
+/* -------- 16. PREFERS REDUCED MOTION -------- */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

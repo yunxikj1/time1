@@ -38,7 +38,6 @@ uniform vec3 u_colorAccent;
 out vec4 outColor;
 
 // ============== NOISE FUNCTIONS ==============
-// 3D Simplex noise implementation for liquid fluid dynamics
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
@@ -48,19 +47,17 @@ float snoise(vec3 v) {
   const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
   const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
 
-  // First corner
   vec3 i  = floor(v + dot(v, C.yyy) );
   vec3 x0 = v - i + dot(i, C.xxx) ;
 
-  // Other corners
   vec3 g = step(x0.yzx, x0.xyz);
   vec3 l = 1.0 - g;
   vec3 i1 = min( g.xyz, l.zxy );
   vec3 i2 = max( g.xyz, l.zxy );
 
   vec3 x1 = x0 - i1 + C.xxx;
-  vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y
-  vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y
+  vec3 x2 = x0 - i2 + C.yyy;
+  vec3 x3 = x0 - D.yyy;
 
   i = mod289(i); 
   vec4 p = permute( permute( permute( 
@@ -68,13 +65,13 @@ float snoise(vec3 v) {
            + i.y + vec4(0.0, i1.y, i2.y, 1.0 )) 
            + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
 
-  float n_ = 0.142857142857; // 1.0/7.0
+  float n_ = 0.142857142857;
   vec3  ns = n_ * D.wyz - D.xzx;
 
-  vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)
+  vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
 
   vec4 x_ = floor(j * ns.z);
-  vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)
+  vec4 y_ = floor(j - 7.0 * x_ );
 
   vec4 x = x_ *ns.x + ns.yyyy;
   vec4 y = y_ *ns.x + ns.yyyy;
@@ -107,13 +104,11 @@ float snoise(vec3 v) {
                                 dot(p2,x2), dot(p3,x3) ) );
 }
 
-// ============== DOMAIN WARPING ==============
-// Fractal Brownian Motion for complex terrain
 float fbm(vec3 x) {
     float v = 0.0;
     float a = 0.5;
-    vec3 shift = vec3(100);
-    for (int i = 0; i < 5; ++i) {
+    vec3 shift = vec3(100.0);
+    for (int i = 0; i < 6; ++i) { // upgraded to 6 octaves
         v += a * snoise(x);
         x = x * 2.0 + shift;
         a *= 0.5;
@@ -121,15 +116,12 @@ float fbm(vec3 x) {
     return v;
 }
 
-// Function to generate the melting ripples (like distorted clock faces)
 float clockMelt(vec2 uv, float t) {
     vec2 q = vec2(0.);
     q.x = fbm( vec3(uv + 0.00, t) );
     q.y = fbm( vec3(uv + vec2(1.0), t) );
 
     vec2 r = vec2(0.);
-    // Intro distortion proportional to scroll velocity
-    // If the user scrolls fast, the distortion multiplier erupts!
     float distortionForce = 1.0 + u_scrollVelocity * 6.0;
     
     r.x = fbm( vec3(uv + 1.0*q + vec2(1.7,9.2)+ 0.15*t * distortionForce, t) );
@@ -138,58 +130,66 @@ float clockMelt(vec2 uv, float t) {
     return fbm( vec3(uv + r * 1.5, t) );
 }
 
+// Particle stars for deep space
+float starField(vec2 p) {
+    vec2 pos = fract(p * 20.0);
+    vec2 id = floor(p * 20.0);
+    float n = fract(sin(dot(id, vec2(12.9898, 78.233))) * 43758.5453123);
+    float size = 0.02 + n * 0.05;
+    float dist = length(pos - vec2(n, fract(n * 34.0)));
+    float star = smoothstep(size, 0.0, dist) * smoothstep(0.9, 1.0, n);
+    return star * (0.5 + 0.5 * sin(u_time * 2.0 + n * 10.0)); // subtle blink
+}
+
 void main() {
-    // Normalize coordinates based on screen ratio
     vec2 st = gl_FragCoord.xy / u_resolution.xy;
     st.x *= u_resolution.x / u_resolution.y;
 
-    // Center coordinates for mouse interaction
     vec2 mst = u_mouse.xy / u_resolution.xy;
     mst.x *= u_resolution.x / u_resolution.y;
-    mst.y = 1.0 - mst.y; // Invert Y for WebGL vs DOM Y
+    mst.y = 1.0 - mst.y;
 
-    // Time variables
-    // Make time flow slightly faster as we scroll down the page
     float baseTime = u_time * 0.1 * (1.0 + u_scrollProgress * 2.0); 
 
-    // Calculate distance from mouse to create a repulsive distortion well
     float distToMouse = distance(st, mst);
-    float mouseForce = exp(-distToMouse * 3.0) * 0.5;
+    float mouseForce = exp(-distToMouse * 4.0) * 0.5;
 
-    // Apply intense coordinate warping (The Melt)
+    // Intense warping
     vec2 warpedSt = st + vec2(
         clockMelt(st + vec2(0.0), baseTime),
         clockMelt(st + vec2(5.2), baseTime)
-    ) * (0.1 + mouseForce * 0.2); // Mouse pushes the fluid around
+    ) * (0.15 + mouseForce * 0.3);
 
-    // Generate patterns based on warped coordinates
     float noiseVal = fbm(vec3(warpedSt * 3.0, baseTime * 1.5));
     
-    // Add sharp contour lines to represent the "geometry of time"
+    // Aurora effect for Quantum zone
+    float aurora = fbm(vec3(st * 4.0 + vec2(baseTime, -baseTime * 1.5), baseTime * 0.5));
+    aurora = pow(abs(aurora), 3.0) * 2.0;
+
     float contour = abs(fract(noiseVal * 10.0) - 0.5);
     contour = smoothstep(0.4, 0.45, contour);
 
-    // Dynamic color mapping based on scene depth (u_scrollProgress)
-    // At top (0.0): Deep blacks and faint golds. 
-    // At bottom (1.0): High contrast abstract voids and white streaks.
+    vec3 voidColor = mix(u_colorBase, vec3(0.02, 0.05, 0.1), u_scrollProgress);
+    vec3 memoryColor = mix(u_colorAccent, vec3(0.0, 1.0, 0.98),  pow(u_scrollProgress, 2.0)); // Cyan shift near bottom
     
-    vec3 voidColor = mix(u_colorBase, vec3(0.01), u_scrollProgress);
-    vec3 memoryColor = mix(u_colorAccent, vec3(0.9, 0.9, 0.9), u_scrollProgress);
-    
-    // Mix the fluid noise with colors
     vec3 finalColor = mix(voidColor, memoryColor, smoothstep(0.2, 0.8, noiseVal));
     
-    // Add bright flashes for scrolling velocity (time sparks)
-    float sparks = pow(smoothstep(0.6, 1.0, noiseVal), 5.0) * (u_scrollVelocity * 2.0);
+    // Add Quantum Aurora if near middle/bottom
+    vec3 auroraColor = vec3(0.0, 1.0, 0.98) * aurora * smoothstep(0.3, 0.7, u_scrollProgress);
+    finalColor += auroraColor;
+    
+    // Starfield for deep space
+    float stars = starField(st + vec2(0.0, baseTime * 0.5));
+    finalColor += vec3(stars) * (1.0 - u_scrollProgress); // fade out stars as we go down
+
+    float sparks = pow(smoothstep(0.6, 1.0, noiseVal), 5.0) * (u_scrollVelocity * 2.5);
     finalColor += sparks * vec3(1.0, 0.8, 0.6);
 
-    // Overlay the geometric contour lines faintly
-    finalColor = mix(finalColor, vec3(0.0, 0.0, 0.0), contour * 0.6);
+    finalColor = mix(finalColor, vec3(0.0), contour * 0.6);
 
-    // Add vignette to center focus
     vec2 uvNorm = gl_FragCoord.xy / u_resolution.xy;
     uvNorm = uvNorm * 2.0 - 1.0;
-    float vignette = max(0.0, 1.0 - dot(uvNorm, uvNorm) * 0.5);
+    float vignette = max(0.0, 1.0 - dot(uvNorm, uvNorm) * 0.6); // slight vignette intensity increase
     finalColor *= vignette;
 
     outColor = vec4(finalColor, 1.0);

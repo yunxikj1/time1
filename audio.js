@@ -294,3 +294,62 @@ function playRewindSweep() {
     osc.start(t);
     osc.stop(t + 3.0);
 }
+
+/* -------- SPECIFIC SCENE EFFECTS -------- */
+window.AudioEngine_PlaySandClick = () => {
+    if (!actx || actx.state !== 'running') return;
+
+    const t = actx.currentTime;
+    const osc = actx.createOscillator();
+    const gainNode = actx.createGain();
+    const filter = actx.createBiquadFilter();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(6000 + Math.random() * 2000, t);
+    osc.frequency.exponentialRampToValueAtTime(100, t + 0.05);
+
+    filter.type = 'highpass';
+    filter.frequency.value = 4000;
+
+    gainNode.gain.setValueAtTime(0, t);
+    gainNode.gain.linearRampToValueAtTime(0.05 + Math.random() * 0.05, t + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+
+    osc.connect(filter);
+    filter.connect(gainNode);
+    gainNode.connect(masterReverb);
+
+    osc.start(t);
+    osc.stop(t + 0.05);
+};
+
+// Start a continuous low-level hum for Quantum Tunnel scene
+let quantumHumSource, quantumHumGain;
+window.AudioEngine_StartQuantumHum = () => {
+    if (!actx || quantumHumSource) return;
+    const t = actx.currentTime;
+
+    quantumHumSource = actx.createOscillator();
+    quantumHumGain = actx.createGain();
+
+    // Low frequency dissonance
+    quantumHumSource.type = 'sine';
+    quantumHumSource.frequency.setValueAtTime(45.0, t); // 45 Hz deep sub
+    quantumHumSource.detune.setValueAtTime(12, t);
+
+    quantumHumGain.gain.setValueAtTime(0, t);
+    quantumHumGain.gain.linearRampToValueAtTime(0.2, t + 2.0); // fade in 2s
+
+    quantumHumSource.connect(quantumHumGain);
+    quantumHumGain.connect(masterLowpass);
+    quantumHumSource.start(t);
+};
+
+window.AudioEngine_StopQuantumHum = () => {
+    if (quantumHumSource && quantumHumGain) {
+        const t = actx.currentTime;
+        quantumHumGain.gain.linearRampToValueAtTime(0.001, t + 1.0);
+        quantumHumSource.stop(t + 1.0);
+        quantumHumSource = null;
+    }
+};

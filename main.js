@@ -179,7 +179,19 @@ const initSmoothScroll = () => {
 
         if (state.scroll.limit > 0) {
             window.__GLOBAL_PROGRESS = Math.max(0, Math.min(1, state.scroll.y / state.scroll.limit));
-            document.getElementById('scroll-progress').style.transform = `translateY(${(window.__GLOBAL_PROGRESS - 1) * 100}%)`;
+            let progFrame = document.getElementById('scroll-progress');
+            if (progFrame) progFrame.style.transform = `translateY(${(window.__GLOBAL_PROGRESS - 1) * 100}%)`;
+
+            // HUD Velocity Updates
+            let velHud = document.querySelector('.velocity-bar');
+            if (velHud) {
+                velHud.style.height = `${Math.min(100, Math.abs(state.scroll.velocity) * 2)}px`;
+            }
+
+            // Fingerprint Tracking
+            if (window.CHRONOS_EFFECTS && window.CHRONOS_EFFECTS.Fingerprint) {
+                window.CHRONOS_EFFECTS.Fingerprint.recordData(Math.abs(state.scroll.velocity), window.__GLOBAL_PROGRESS);
+            }
         }
 
         // Feed the fake scroll position to GSAP!
@@ -429,6 +441,126 @@ const initMasterTimeline = () => {
             end: "bottom top",
             scrub: 2.5
         }
+    });
+
+    // --- NEW SCENE ANIMATIONS ---
+
+    // Scene 02.5: Hourglass
+    ScrollTrigger.create({
+        scroller: scrollWrapper,
+        trigger: ".scene-02-5-hourglass",
+        start: "top bottom",
+        end: "bottom top",
+        onUpdate: self => {
+            if (window.CHRONOS_EFFECTS && window.CHRONOS_EFFECTS.Hourglass) {
+                window.CHRONOS_EFFECTS.Hourglass.setScrollData(self.progress, state.scroll.velocity);
+            }
+        }
+    });
+
+    // Scene 03.5: Timeline
+    const timelineNodes = document.querySelectorAll('.timeline-node');
+    timelineNodes.forEach((node, i) => {
+        ScrollTrigger.create({
+            scroller: scrollWrapper,
+            trigger: node,
+            start: "top center+=20%",
+            onEnter: () => {
+                if (window.CHRONOS_EFFECTS && window.CHRONOS_EFFECTS.Timeline) {
+                    window.CHRONOS_EFFECTS.Timeline.activateNode(i);
+                }
+            },
+            onEnterBack: () => {
+                if (window.CHRONOS_EFFECTS && window.CHRONOS_EFFECTS.Timeline) {
+                    window.CHRONOS_EFFECTS.Timeline.activateNode(i);
+                }
+            }
+        });
+    });
+
+    // Scene 04.5: Quantum Tunnel
+    const metrics = document.querySelectorAll('.metric-value');
+    ScrollTrigger.create({
+        scroller: scrollWrapper,
+        trigger: ".scene-04-5-quantum",
+        start: "top center",
+        onEnter: () => {
+            metrics.forEach(el => {
+                let target = parseFloat(el.getAttribute('data-val'));
+                gsap.to({ val: 0 }, {
+                    val: target,
+                    duration: 3,
+                    ease: "power2.out",
+                    onUpdate: function () {
+                        el.innerText = target % 1 === 0 ? Math.floor(this.targets()[0].val) : this.targets()[0].val.toFixed(2);
+                    }
+                });
+            });
+        }
+    });
+
+    // Scene 06.5: Dali Clock
+    ScrollTrigger.create({
+        scroller: scrollWrapper,
+        trigger: ".scene-06-5-dali",
+        start: "top bottom",
+        end: "bottom top",
+        scrub: true,
+        onUpdate: self => {
+            if (window.CHRONOS_EFFECTS && window.CHRONOS_EFFECTS.Dali) {
+                window.CHRONOS_EFFECTS.Dali.setMeltFactor(self.progress * 1.5);
+            }
+        }
+    });
+
+    // Scene 08: End Fingerprint Generation
+    ScrollTrigger.create({
+        scroller: scrollWrapper,
+        trigger: "#scene-end",
+        start: "top center",
+        onEnter: () => {
+            if (window.CHRONOS_EFFECTS && window.CHRONOS_EFFECTS.Fingerprint) {
+                window.CHRONOS_EFFECTS.Fingerprint.generate();
+            }
+        }
+    });
+
+    // Global Scene Transition Controller
+    const sections = document.querySelectorAll('section');
+    sections.forEach((sec, i) => {
+        ScrollTrigger.create({
+            scroller: scrollWrapper,
+            trigger: sec,
+            start: "top center+=20%",
+            onEnter: () => {
+                if (window.CHRONOS_EFFECTS && window.CHRONOS_EFFECTS.Transition) {
+                    window.CHRONOS_EFFECTS.Transition.updateSceneIndicator(i + 1);
+                    if (i > 0) window.CHRONOS_EFFECTS.Transition.triggerTransition();
+                }
+            },
+            onEnterBack: () => {
+                if (window.CHRONOS_EFFECTS && window.CHRONOS_EFFECTS.Transition) {
+                    window.CHRONOS_EFFECTS.Transition.updateSceneIndicator(i + 1);
+                }
+            }
+        });
+    });
+
+    // Random floating Kanji animation
+    gsap.utils.toArray('.floating-kanji span').forEach(span => {
+        gsap.to(span, {
+            y: () => (Math.random() * -800) - 200,
+            x: () => (Math.random() - 0.5) * 500,
+            rotation: () => (Math.random() - 0.5) * 360,
+            ease: "none",
+            scrollTrigger: {
+                scroller: scrollWrapper,
+                trigger: span.parentElement, // trigger on the kanji wrapper
+                start: "top bottom",
+                end: "bottom top",
+                scrub: Math.random() * 2 + 1
+            }
+        });
     });
 
     // Rewind Button Logic
